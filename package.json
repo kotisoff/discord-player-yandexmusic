@@ -1,0 +1,25 @@
+{
+  "name": "discord-player-yandexmusic",
+  "version": "0.0.8",
+  "description": "A custom extractor made for discord-player that enables you to extract from Yandex Music.",
+  "main": "dist/YandexMusicExtractor.js",
+  "author": "kotisoff",
+  "license": "MIT",
+  "private": false,
+  "dependencies": {
+    "discord-player": "^6.0.0",
+    "tslint-config-prettier": "^1.18.0",
+    "ym-api": "^1.2.1"
+  },
+  "devDependencies": {
+    "prettier": "^2.8.4",
+    "tslint": "^6.1.3",
+    "typescript": "^4.9.5"
+  },
+  "scripts": {
+    "build": "npm run lint && tsc && npm run format",
+    "format": "prettier --write \"dist/*.js\"",
+    "lint": "tslint -p tsconfig.json",
+    "npm:publish": "yarn build && npm publish --access public"
+  }
+}
