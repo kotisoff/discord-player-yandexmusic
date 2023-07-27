@@ -8,7 +8,7 @@ export interface YaRegex {
 };
 
 export class YandexMusicExtractor extends BaseExtractor {
-    static identifier = 'com.discord-player.yamusicextractor' as const;
+    static identifier = 'com.dp.ymext' as const; // com.discord-player.yamusicextractor
 
     private YM = new YMApi();
     private Wrapper = new WrappedYMApi(this.YM);
@@ -25,6 +25,19 @@ export class YandexMusicExtractor extends BaseExtractor {
         playlist: /(^https:)\/\/music\.yandex\.[A-Za-z]+\/users\/[A-Za-z0-9]+\/playlists\/[0-9]+/,
         album: /(^https:)\/\/music\.yandex\.[A-Za-z]+\/album\/[0-9]+/
     };
+
+    private buildTrack = (track: any, context: any | null) => new Track(this.context.player, {
+        title: track.title,
+        raw: track,
+        description: `Genre: ${track.albums[0].genre}, Release year: ${track.albums[0].originalReleaseYear}, Explicit: ${track.explicit}`,
+        author: track.artists.map((artist: any) => artist.name).join(", "),
+        url: `https://music.yandex.ru/album/${track.albums[0].id}/track/${track.id}`,
+        source: "arbitrary",
+        thumbnail: track.coverUri,
+        duration: Util.buildTimeCode(Util.parseMS(track.durationMs)),
+        views: 0,
+        requestedBy: context?.requestedBy ?? null
+    });
 
     async validate(query: string): Promise<boolean> {
         if (typeof query !== "string") return false;
@@ -60,26 +73,12 @@ export class YandexMusicExtractor extends BaseExtractor {
             });
             const alltracks = album.volumes.flatMap(page => page)
             const tracks = alltracks.map(track => {
-                return new Track(this.context.player, {
-                    title: track.title,
-                    raw: track,
-                    description: `Genre: ${albumonly.genre}, Release year: ${albumonly.originalReleaseYear}, Explicit: ${track.explicit}`,
-                    author: track.artists.map((artist) => artist.name).join(", "),
-                    url: `https://music.yandex.ru/album/${albumonly.id}/track/${track.id}`,
-                    source: "arbitrary",
-                    thumbnail: track.coverUri,
-                    duration: Util.buildTimeCode(Util.parseMS(track.durationMs)),
-                    views: 0,
-                    requestedBy: context.requestedBy
-                });
+                return this.buildTrack(track, context);
             })
 
             playlist.tracks = tracks;
 
-            return {
-                playlist,
-                tracks
-            }
+            return this.createResponse(playlist, tracks);
         }
 
         if (context.type === "ymplaylist") {
@@ -102,26 +101,12 @@ export class YandexMusicExtractor extends BaseExtractor {
             })
             const tracks = data.tracks?.map(slot => {
                 const track = slot.track;
-                return new Track(this.context.player, {
-                    title: track.title,
-                    raw: track,
-                    description: `Genre: ${track.albums[0].genre}, Release year: ${track.albums[0].originalReleaseYear}, Explicit: ${track.explicit}`,
-                    author: track.artists.map((artist) => artist.name).join(", "),
-                    url: `https://music.yandex.ru/album/${track.albums[0].id}/track/${track.id}`,
-                    source: "arbitrary",
-                    thumbnail: track.coverUri,
-                    duration: Util.buildTimeCode(Util.parseMS(track.durationMs)),
-                    views: 0,
-                    requestedBy: context.requestedBy
-                });
+                return this.buildTrack(track, context);
             })
 
             playlist.tracks = tracks ?? [];
 
-            return {
-                playlist,
-                tracks: tracks ?? []
-            }
+            return this.createResponse(playlist, tracks);
         }
 
         if (context.type === "ymtrack") {
@@ -129,18 +114,7 @@ export class YandexMusicExtractor extends BaseExtractor {
             const data = {
                 playlist: null,
                 tracks: [
-                    new Track(this.context.player, {
-                        title: track.title,
-                        raw: track,
-                        description: `Genre: ${track.albums[0].genre}, Release year: ${track.albums[0].originalReleaseYear}, Explicit: ${track.explicit}`,
-                        author: track.artists.map((artist) => artist.name).join(", "),
-                        url: query,
-                        source: "arbitrary",
-                        thumbnail: track.coverUri,
-                        duration: Util.buildTimeCode(Util.parseMS(track.durationMs)),
-                        views: 0,
-                        requestedBy: context.requestedBy,
-                    })
+                    this.buildTrack(track, context)
                 ]
             }
 
@@ -152,23 +126,12 @@ export class YandexMusicExtractor extends BaseExtractor {
             const data = {
                 playlist: null,
                 tracks: [
-                    new Track(this.context.player, {
-                        title: track.title,
-                        raw: track,
-                        description: `Genre: ${track.albums[0].genre}, Release year: ${track.albums[0].originalReleaseYear}, Explicit: ${track.explicit}`,
-                        author: track.artists.map((artist) => artist.name).join(", "),
-                        url: `https://music.yandex.ru/album/${track.albums[0].id}/track/${track.id}`,
-                        source: "arbitrary",
-                        thumbnail: track.coverUri,
-                        duration: Util.buildTimeCode(Util.parseMS(track.durationMs)),
-                        views: 0,
-                        requestedBy: context.requestedBy,
-                    })
+                    this.buildTrack(track, context)
                 ]
             }
             return data;
         }
-        return { playlist: null, tracks: [] }
+        return this.createResponse(null, [])
     }
 
     async stream(track: Track): Promise<string> {
@@ -184,20 +147,9 @@ export class YandexMusicExtractor extends BaseExtractor {
         const authors = track.author.split(", ")
         const random = Math.floor(Math.random() * (authors.length));
         const author = (await this.YM.searchArtists(authors[random])).artists.results[0].id
-        const tracks = (await this.YM.getArtistTracks(author)).tracks.slice(0,5)
+        const tracks = (await this.YM.getArtistTracks(author)).tracks.slice(0, 5)
         const data = tracks.map(song => {
-            return new Track(this.context.player, {
-                title: song.title,
-                raw: song,
-                description: `Genre: ${song.albums[0].genre}, Release year: ${song.albums[0].originalReleaseYear}, Explicit: ${song.explicit}`,
-                author: song.artists.map((artist) => artist.name).join(", "),
-                url: `https://music.yandex.ru/album/${song.albums[0].id}/track/${song.id}`,
-                source: "arbitrary",
-                thumbnail: song.coverUri,
-                duration: Util.buildTimeCode(Util.parseMS(song.durationMs)),
-                views: 0,
-                requestedBy: null,
-            })
+            return this.buildTrack(song, null);
         })
         return this.createResponse(null, data);
     }
