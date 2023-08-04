@@ -2,18 +2,33 @@
 Object.defineProperty(exports, '__esModule', { value: true });
 exports.YandexMusicExtractor = void 0;
 const discord_player_1 = require('discord-player');
-const ym_api_1 = require('ym-api');
+const ym_api_meowed_1 = require('ym-api-meowed');
 class YandexMusicExtractor extends discord_player_1.BaseExtractor {
   constructor() {
     super(...arguments);
-    this.YM = new ym_api_1.YMApi();
-    this.Wrapper = new ym_api_1.WrappedYMApi(this.YM);
+    this.YM = new ym_api_meowed_1.YMApi();
+    this.Wrapper = new ym_api_meowed_1.WrappedYMApi(this.YM);
     this.createBridgeQuery = (track) => `${track.title} by ${track.author}`;
     this.YaRegex = {
       track: /(^https:)\/\/music\.yandex\.[A-Za-z]+\/album\/[0-9]+\/track\/[0-9]+/,
       playlist: /(^https:)\/\/music\.yandex\.[A-Za-z]+\/users\/[A-Za-z0-9]+\/playlists\/[0-9]+/,
       album: /(^https:)\/\/music\.yandex\.[A-Za-z]+\/album\/[0-9]+/,
     };
+    this.buildTrack = (track, context) =>
+      new discord_player_1.Track(this.context.player, {
+        title: track.title,
+        raw: track,
+        description: `Genre: ${track.albums[0].genre}, Release year: ${track.albums[0].year}, Explicit: ${
+          track.contentWarning?.includes('explicit') ? 'Yes' : 'No'
+        }`,
+        author: track.artists.map((artist) => artist.name).join(', '),
+        url: `https://music.yandex.ru/album/${track.albums[0].id}/track/${track.id}`,
+        source: 'arbitrary',
+        thumbnail: track.coverUri,
+        duration: discord_player_1.Util.buildTimeCode(discord_player_1.Util.parseMS(track.durationMs)),
+        views: 0,
+        requestedBy: context?.requestedBy ?? null,
+      });
   }
   async activate() {
     if (!this.options) return;
@@ -37,7 +52,7 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
       const playlist = new discord_player_1.Playlist(this.context.player, {
         title: albumonly.title,
         thumbnail: albumonly.coverUri,
-        description: `Genre: ${albumonly.genre}, Release year: ${albumonly.originalReleaseYear}`,
+        description: `Genre: ${albumonly.genre}, Release year: ${albumonly.year}`,
         type: 'playlist',
         source: 'arbitrary',
         author: {
@@ -51,24 +66,10 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
       });
       const alltracks = album.volumes.flatMap((page) => page);
       const tracks = alltracks.map((track) => {
-        return new discord_player_1.Track(this.context.player, {
-          title: track.title,
-          raw: track,
-          description: `Genre: ${albumonly.genre}, Release year: ${albumonly.originalReleaseYear}, Explicit: ${track.explicit}`,
-          author: track.artists.map((artist) => artist.name).join(', '),
-          url: `https://music.yandex.ru/album/${albumonly.id}/track/${track.id}`,
-          source: 'arbitrary',
-          thumbnail: track.coverUri,
-          duration: discord_player_1.Util.buildTimeCode(discord_player_1.Util.parseMS(track.durationMs)),
-          views: 0,
-          requestedBy: context.requestedBy,
-        });
+        return this.buildTrack(track, context);
       });
       playlist.tracks = tracks;
-      return {
-        playlist,
-        tracks,
-      };
+      return this.createResponse(playlist, tracks);
     }
     if (context.type === 'ymplaylist') {
       const data = await this.Wrapper.getPlaylist(query);
@@ -90,43 +91,16 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
       });
       const tracks = data.tracks?.map((slot) => {
         const track = slot.track;
-        return new discord_player_1.Track(this.context.player, {
-          title: track.title,
-          raw: track,
-          description: `Genre: ${track.albums[0].genre}, Release year: ${track.albums[0].originalReleaseYear}, Explicit: ${track.explicit}`,
-          author: track.artists.map((artist) => artist.name).join(', '),
-          url: `https://music.yandex.ru/album/${track.albums[0].id}/track/${track.id}`,
-          source: 'arbitrary',
-          thumbnail: track.coverUri,
-          duration: discord_player_1.Util.buildTimeCode(discord_player_1.Util.parseMS(track.durationMs)),
-          views: 0,
-          requestedBy: context.requestedBy,
-        });
+        return this.buildTrack(track, context);
       });
       playlist.tracks = tracks ?? [];
-      return {
-        playlist,
-        tracks: tracks ?? [],
-      };
+      return this.createResponse(playlist, tracks);
     }
     if (context.type === 'ymtrack') {
       const track = await this.Wrapper.getTrack(query);
       const data = {
         playlist: null,
-        tracks: [
-          new discord_player_1.Track(this.context.player, {
-            title: track.title,
-            raw: track,
-            description: `Genre: ${track.albums[0].genre}, Release year: ${track.albums[0].originalReleaseYear}, Explicit: ${track.explicit}`,
-            author: track.artists.map((artist) => artist.name).join(', '),
-            url: query,
-            source: 'arbitrary',
-            thumbnail: track.coverUri,
-            duration: discord_player_1.Util.buildTimeCode(discord_player_1.Util.parseMS(track.durationMs)),
-            views: 0,
-            requestedBy: context.requestedBy,
-          }),
-        ],
+        tracks: [this.buildTrack(track, context)],
       };
       return data;
     }
@@ -134,24 +108,11 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
       const track = (await this.YM.searchTracks(query, { pageSize: 5 })).tracks.results[0];
       const data = {
         playlist: null,
-        tracks: [
-          new discord_player_1.Track(this.context.player, {
-            title: track.title,
-            raw: track,
-            description: `Genre: ${track.albums[0].genre}, Release year: ${track.albums[0].originalReleaseYear}, Explicit: ${track.explicit}`,
-            author: track.artists.map((artist) => artist.name).join(', '),
-            url: `https://music.yandex.ru/album/${track.albums[0].id}/track/${track.id}`,
-            source: 'arbitrary',
-            thumbnail: track.coverUri,
-            duration: discord_player_1.Util.buildTimeCode(discord_player_1.Util.parseMS(track.durationMs)),
-            views: 0,
-            requestedBy: context.requestedBy,
-          }),
-        ],
+        tracks: [this.buildTrack(track, context)],
       };
       return data;
     }
-    return { playlist: null, tracks: [] };
+    return this.createResponse(null, []);
   }
   async stream(track) {
     try {
@@ -161,26 +122,33 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
     }
   }
   async getRelatedTracks(track) {
-    const authors = track.author.split(', ');
-    const random = Math.floor(Math.random() * authors.length);
-    const author = (await this.YM.searchArtists(authors[random])).artists.results[0].id;
-    const tracks = (await this.YM.getArtistTracks(author)).tracks.slice(0, 5);
-    const data = tracks.map((song) => {
-      return new discord_player_1.Track(this.context.player, {
-        title: song.title,
-        raw: song,
-        description: `Genre: ${song.albums[0].genre}, Release year: ${song.albums[0].originalReleaseYear}, Explicit: ${song.explicit}`,
-        author: song.artists.map((artist) => artist.name).join(', '),
-        url: `https://music.yandex.ru/album/${song.albums[0].id}/track/${song.id}`,
-        source: 'arbitrary',
-        thumbnail: song.coverUri,
-        duration: discord_player_1.Util.buildTimeCode(discord_player_1.Util.parseMS(song.durationMs)),
-        views: 0,
-        requestedBy: null,
-      });
+    const trackid = parseInt(track.url.split('/track/')[1], 10);
+    const simmilar = await this.YM.getSimmilarTracks(trackid);
+    let simmilarTracks = simmilar.simmilarTracks.slice(0, 4);
+    if (simmilar.simmilarTracks.length === 0) {
+      simmilarTracks = (await this.YM.getStationTracks(`genre:${simmilar.track.albums[0].genre}`)).sequence.map(
+        (sttrack) => sttrack.track,
+      );
+    }
+    const playlist = new discord_player_1.Playlist(this.context.player, {
+      title: `Related Tracks of ${track.title} - ${track.author}`,
+      thumbnail: '',
+      description: `Autogenerated playlist with related tracks.`,
+      type: 'playlist',
+      source: 'arbitrary',
+      author: {
+        name: this.identifier,
+        url: `https://npm.im/discord-player-yandexmusic`,
+      },
+      tracks: [],
+      id: `related${trackid}`,
+      url: `https://npm.im/discord-player-yandexmusic`,
+      rawPlaylist: null,
     });
-    return this.createResponse(null, data);
+    const tracks = simmilarTracks.map((song) => this.buildTrack(song, null));
+    playlist.tracks = tracks;
+    return this.createResponse(playlist, tracks);
   }
 }
 exports.YandexMusicExtractor = YandexMusicExtractor;
-YandexMusicExtractor.identifier = 'com.discord-player.yamusicextractor';
+YandexMusicExtractor.identifier = 'com.dp.ymext'; // com.discord-player.yamusicextractor

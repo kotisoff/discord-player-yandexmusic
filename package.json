@@ -1,15 +1,18 @@
 {
   "name": "discord-player-yandexmusic",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "A custom extractor made for discord-player that enables you to extract from Yandex Music.",
   "main": "dist/YandexMusicExtractor.js",
   "author": "kotisoff",
   "license": "MIT",
-  "private": false,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kotisoff/discord-player-yandexmusic.git"
+  },
   "dependencies": {
     "discord-player": "^6.0.0",
     "tslint-config-prettier": "^1.18.0",
-    "ym-api": "^1.2.1"
+    "ym-api-meowed": "^1.2.6"
   },
   "devDependencies": {
     "prettier": "^2.8.4",

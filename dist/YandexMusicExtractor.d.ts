@@ -5,12 +5,13 @@ export interface YaRegex {
     album: RegExp;
 }
 export declare class YandexMusicExtractor extends BaseExtractor {
-    static identifier: "com.discord-player.yamusicextractor";
+    static identifier: "com.dp.ymext";
     private YM;
     private Wrapper;
     createBridgeQuery: (track: Track) => string;
     activate(): Promise<void>;
     private YaRegex;
+    private buildTrack;
     validate(query: string): Promise<boolean>;
     handle(query: string, context: any): Promise<ExtractorInfo>;
     stream(track: Track): Promise<string>;

@@ -404,10 +404,10 @@ xmlbuilder@~11.0.0:
   resolved "https://registry.yarnpkg.com/xmlbuilder/-/xmlbuilder-11.0.1.tgz#be9bae1c8a046e76b31127726347d0ad7002beb3"
   integrity sha512-fDlsI/kFEx7gLvbecc0/ohLG50fugQp8ryHzMTuW9vSa1GJ0XYWKnhsUx7oie3G98+r56aTQIUB4kht42R3JvA==
 
-ym-api@^1.2.1:
-  version "1.2.1"
-  resolved "https://registry.yarnpkg.com/ym-api/-/ym-api-1.2.1.tgz#bf0a70865ab2abd90f11b577c775997412277d62"
-  integrity sha512-Sd8vPP+KwH320PogEFlxIcpNF8+7IANgmi8TYGLZpJk/4mN2TpM5BH6kCa5K4KKEGf67esyir49CopZr4cMpkg==
+ym-api-meowed@^1.2.6:
+  version "1.2.6"
+  resolved "https://registry.yarnpkg.com/ym-api-meowed/-/ym-api-meowed-1.2.6.tgz#f1d49e7514dcec47359f82a1ae805ecfc21f8598"
+  integrity sha512-iC9EQvTNWVtDdwhHmJcJl+p+64J3kjCCuOjZC5koplcn+S2zKLuQhCIGHfZLr/6WRCj6Cd5SBLa3smVo/D5X3w==
   dependencies:
     axios "^0.21.1"
     xml2js "^0.4.23"
