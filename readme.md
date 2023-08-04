@@ -14,8 +14,8 @@ discordplayer.useMainPlayer().register(YandexMusicExtractor, { access_token: "yo
 
 ## How to get your yandex music token and uid
 
-1. To get token, simply follow these [instructions](https://github.com/MarshalX/yandex-music-api/discussions/513)
+1. To get token, simply follow these [instructions](https://github.com/MarshalX/yandex-music-api/discussions/513).
 2. To get uid click [here](https://mail.yandex.ru/). Your uid will be in url.
 
-### Thanks
+## Thanks
 - retro_ig (aka retrouser955) for his [discord-player-deezer](https://github.com/retrouser955/discord-player-deezer)
