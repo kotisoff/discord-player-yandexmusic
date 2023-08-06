@@ -171,9 +171,9 @@ export class YandexMusicExtractor extends BaseExtractor {
 
         return this.createResponse(playlist, tracks);
     }
-    /**Requires you to be logged in. (register extractor with config) */
-    async getRadioTracks(stationId:string,query?:string): Promise<ExtractorInfo> {
-        const radio = await this.YM.getStationTracks(stationId,query);
+
+    public async getRadioTracks(stationId:string,queue?:string): Promise<ExtractorInfo> {
+        const radio = await this.YM.getStationTracks(stationId,queue);
         const tracks = radio.sequence.map(track=>this.buildTrack(track.track,null));
         const playlist = new Playlist(this.context.player,{
             title: `Radio ${stationId}`,
@@ -185,11 +185,12 @@ export class YandexMusicExtractor extends BaseExtractor {
                 name: "YMExtractor",
                 url: "https://npm.im/discord-player-yandexmusic"
             },
-            tracks: tracks,
+            tracks,
             id: `${radio.batchId}`,
             url: "https://npm.im/discord-player-yandexmusic",
             rawPlaylist: radio
         })
         return this.createResponse(playlist,tracks)
     }
+    public getApi = () => this.YM
 }

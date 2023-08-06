@@ -1,4 +1,5 @@
 import { BaseExtractor, Track, ExtractorInfo } from "discord-player";
+import { YMApi } from "ym-api-meowed";
 export interface YaRegex {
     track: RegExp;
     playlist: RegExp;
@@ -16,4 +17,6 @@ export declare class YandexMusicExtractor extends BaseExtractor {
     handle(query: string, context: any): Promise<ExtractorInfo>;
     stream(track: Track): Promise<string>;
     getRelatedTracks(track: Track): Promise<ExtractorInfo>;
+    getRadioTracks(stationId: string, queue?: string): Promise<ExtractorInfo>;
+    getApi: () => YMApi;
 }
