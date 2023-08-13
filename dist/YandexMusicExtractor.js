@@ -66,9 +66,11 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
         rawPlaylist: albumonly,
       });
       const alltracks = album.volumes.flatMap((page) => page);
-      const tracks = alltracks.map((track) => {
-        return this.buildTrack(track, context);
-      });
+      const tracks = alltracks
+        .filter((track) => track.available)
+        .map((track) => {
+          return this.buildTrack(track, context);
+        });
       playlist.tracks = tracks;
       return this.createResponse(playlist, tracks);
     }
@@ -90,10 +92,12 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
         url: query,
         rawPlaylist: data,
       });
-      const tracks = data.tracks?.map((slot) => {
-        const track = slot.track;
-        return this.buildTrack(track, context);
-      });
+      const tracks = data.tracks
+        ?.filter((slot) => slot.track.available)
+        .map((slot) => {
+          const track = slot.track;
+          return this.buildTrack(track, context);
+        });
       playlist.tracks = tracks ?? [];
       return this.createResponse(playlist, tracks);
     }

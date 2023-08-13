@@ -72,7 +72,7 @@ export class YandexMusicExtractor extends BaseExtractor {
                 rawPlaylist: albumonly
             });
             const alltracks = album.volumes.flatMap(page => page)
-            const tracks = alltracks.map(track => {
+            const tracks = alltracks.filter(track=>track.available).map(track => {
                 return this.buildTrack(track, context);
             })
 
@@ -99,7 +99,7 @@ export class YandexMusicExtractor extends BaseExtractor {
                 url: query,
                 rawPlaylist: data
             })
-            const tracks = data.tracks?.map(slot => {
+            const tracks = data.tracks?.filter(slot=>slot.track.available).map(slot => {
                 const track = slot.track;
                 return this.buildTrack(track, context);
             })
