@@ -29,7 +29,6 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
         views: 0,
         requestedBy: context?.requestedBy ?? null,
       });
-    this.getApi = () => this.YM;
   }
   async activate() {
     if (!this.options) return;
@@ -40,14 +39,11 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
     return this.YaRegex.track.test(query) || this.YaRegex.playlist.test(query) || this.YaRegex.album.test(query);
   }
   async handle(query, context) {
-    if (this.YaRegex.track.test(query)) {
-      context.type = 'ymtrack';
-    } else if (this.YaRegex.album.test(query)) {
-      context.type = 'ymalbum';
-    } else if (this.YaRegex.playlist.test(query)) {
-      context.type = 'ymplaylist';
-    } else context.type = 'ymsearch';
-    if (context.type === 'ymalbum') {
+    let type = 'search';
+    if (this.YaRegex.track.test(query)) type = 'track';
+    else if (this.YaRegex.album.test(query)) type = 'album';
+    else if (this.YaRegex.playlist.test(query)) type = 'playlist';
+    if (type === 'album') {
       const album = await this.Wrapper.getAlbumWithTracks(query);
       const albumonly = await this.Wrapper.getAlbum(query);
       const playlist = new discord_player_1.Playlist(this.context.player, {
@@ -73,8 +69,7 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
         });
       playlist.tracks = tracks;
       return this.createResponse(playlist, tracks);
-    }
-    if (context.type === 'ymplaylist') {
+    } else if (type === 'playlist') {
       const data = await this.Wrapper.getPlaylist(query);
       if (!data.available) return { playlist: null, tracks: [] };
       const playlist = new discord_player_1.Playlist(this.context.player, {
@@ -100,16 +95,14 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
         });
       playlist.tracks = tracks ?? [];
       return this.createResponse(playlist, tracks);
-    }
-    if (context.type === 'ymtrack') {
+    } else if (type === 'track') {
       const track = await this.Wrapper.getTrack(query);
       const data = {
         playlist: null,
         tracks: [this.buildTrack(track, context)],
       };
       return data;
-    }
-    if (context.type === 'ymsearch') {
+    } else if (type === 'search') {
       const track = (await this.YM.searchTracks(query, { pageSize: 5 })).tracks.results[0];
       const data = {
         playlist: null,
@@ -154,26 +147,6 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
     playlist.tracks = tracks;
     return this.createResponse(playlist, tracks);
   }
-  async getRadioTracks(stationId, queue) {
-    const radio = await this.YM.getStationTracks(stationId, queue);
-    const tracks = radio.sequence.map((track) => this.buildTrack(track.track, null));
-    const playlist = new discord_player_1.Playlist(this.context.player, {
-      title: `Radio ${stationId}`,
-      thumbnail: '',
-      description: `Tracks from ${stationId} wave.`,
-      type: 'playlist',
-      source: 'arbitrary',
-      author: {
-        name: 'YMExtractor',
-        url: 'https://npm.im/discord-player-yandexmusic',
-      },
-      tracks,
-      id: `${radio.batchId}`,
-      url: 'https://npm.im/discord-player-yandexmusic',
-      rawPlaylist: radio,
-    });
-    return this.createResponse(playlist, tracks);
-  }
 }
 exports.YandexMusicExtractor = YandexMusicExtractor;
-YandexMusicExtractor.identifier = 'com.dp.ymext'; // com.discord-player.yamusicextractor
+YandexMusicExtractor.identifier = 'com.discord-player.yandexextractor'; // com.discord-player.yamusicextractor
