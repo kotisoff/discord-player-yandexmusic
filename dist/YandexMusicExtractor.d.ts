@@ -12,6 +12,7 @@ export declare class YandexMusicExtractor extends BaseExtractor {
     activate(): Promise<void>;
     private YaRegex;
     private buildTrack;
+    private getThumbnail;
     validate(query: string): Promise<boolean>;
     handle(query: string, context: any): Promise<ExtractorInfo>;
     stream(track: Track): Promise<string>;

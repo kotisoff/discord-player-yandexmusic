@@ -33,11 +33,16 @@ export class YandexMusicExtractor extends BaseExtractor {
         author: track.artists.map((artist: any) => artist.name).join(", "),
         url: `https://music.yandex.ru/album/${track.albums[0].id}/track/${track.id}`,
         source: "arbitrary",
-        thumbnail: track.coverUri,
+        thumbnail: this.getThumbnail(track.coverUri),
         duration: Util.buildTimeCode(Util.parseMS(track.durationMs)),
         views: 0,
         requestedBy: context?.requestedBy ?? null
     });
+
+    private getThumbnail(uri: string, size: number = 400){
+        uri.replace("%%", size+"x"+size);
+        return "https://"+uri
+    }
 
     async validate(query: string): Promise<boolean> {
         if (typeof query !== "string") return false;
@@ -80,10 +85,14 @@ export class YandexMusicExtractor extends BaseExtractor {
 
         if (type === "playlist") {
             const data = await this.Wrapper.getPlaylist(query);
+
             if (!data.available) return { playlist: null, tracks: [] }
+
+            const thumbnail = data.ogImage ? this.getThumbnail(data.ogImage) : this.getThumbnail(data.tracks?.[0].track.coverUri as string);
+
             const playlist = new Playlist(this.context.player, {
                 title: data.title,
-                thumbnail: data.ogImage,
+                thumbnail,
                 description: `Created: ${data.created}`,
                 type: 'playlist',
                 source: 'arbitrary',

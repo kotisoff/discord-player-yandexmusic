@@ -24,7 +24,7 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
         author: track.artists.map((artist) => artist.name).join(', '),
         url: `https://music.yandex.ru/album/${track.albums[0].id}/track/${track.id}`,
         source: 'arbitrary',
-        thumbnail: track.coverUri,
+        thumbnail: this.getThumbnail(track.coverUri),
         duration: discord_player_1.Util.buildTimeCode(discord_player_1.Util.parseMS(track.durationMs)),
         views: 0,
         requestedBy: context?.requestedBy ?? null,
@@ -33,6 +33,10 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
   async activate() {
     if (!this.options) return;
     this.YM.init(this.options);
+  }
+  getThumbnail(uri, size = 400) {
+    uri.replace('%%', size + 'x' + size);
+    return 'https://' + uri;
   }
   async validate(query) {
     if (typeof query !== 'string') return false;
@@ -72,9 +76,12 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
     } else if (type === 'playlist') {
       const data = await this.Wrapper.getPlaylist(query);
       if (!data.available) return { playlist: null, tracks: [] };
+      const thumbnail = data.ogImage
+        ? this.getThumbnail(data.ogImage)
+        : this.getThumbnail(data.tracks?.[0].track.coverUri);
       const playlist = new discord_player_1.Playlist(this.context.player, {
         title: data.title,
-        thumbnail: data.ogImage,
+        thumbnail,
         description: `Created: ${data.created}`,
         type: 'playlist',
         source: 'arbitrary',
