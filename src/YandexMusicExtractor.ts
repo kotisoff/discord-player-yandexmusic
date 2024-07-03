@@ -5,6 +5,7 @@ export interface YaRegex {
     track: RegExp;
     playlist: RegExp;
     album: RegExp;
+    artist: RegExp
 };
 
 export class YandexMusicExtractor extends BaseExtractor {
@@ -23,7 +24,8 @@ export class YandexMusicExtractor extends BaseExtractor {
     private YaRegex: YaRegex = {
         track: /(^https:)\/\/music\.yandex\.[A-Za-z]+\/album\/[0-9]+\/track\/[0-9]+/,
         playlist: /(^https:)\/\/music\.yandex\.[A-Za-z]+\/users\/[A-Za-z0-9]+\/playlists\/[0-9]+/,
-        album: /(^https:)\/\/music\.yandex\.[A-Za-z]+\/album\/[0-9]+/
+        album: /(^https:)\/\/music\.yandex\.[A-Za-z]+\/album\/[0-9]+/,
+        artist: /(^https:)\/\/music\.yandex\.[A-Za-z]+\/artist\/[0-9]+/
     };
 
     private buildTrack = (track: Types.Track, context: any | null) => new Track(this.context.player, {
@@ -50,10 +52,11 @@ export class YandexMusicExtractor extends BaseExtractor {
     }
 
     async handle(query: string, context: any): Promise<ExtractorInfo> {
-        let type = "search"
+        let type: "search" | "track" | "album" | "playlist" | "artist" = "search"
         if (this.YaRegex.track.test(query)) type = "track"
         else if (this.YaRegex.album.test(query)) type = "album"
         else if (this.YaRegex.playlist.test(query)) type = "playlist"
+        else if (this.YaRegex.artist.test(query)) type = "artist"
 
         if (type === "album") {
             const album = await this.Wrapper.getAlbumWithTracks(query);
@@ -125,6 +128,36 @@ export class YandexMusicExtractor extends BaseExtractor {
             }
 
             return data;
+        }else
+
+        if(type === "artist") {
+            const artist = (await this.Wrapper.getArtist(query)).artist;
+            const artistId = artist.id;
+            const artisttracks = (await this.YM.getArtistTracks(artistId)).tracks;
+
+            const thumbnail = artist.ogImage ? this.getThumbnail(artist.ogImage) : this.getThumbnail(artisttracks[0].coverUri as string);
+
+            const tracks = artisttracks?.filter(track=>track.available).map(track =>
+                this.buildTrack(track, context)
+            )
+
+            const playlist = new Playlist(this.context.player, {
+                title: artist.name+" songs",
+                thumbnail,
+                description: `Created: Now`,
+                type: 'playlist',
+                source: 'arbitrary',
+                author: {
+                    name: artist.name,
+                    url: `https://music.yandex.ru/artist/${artistId}`
+                },
+                tracks: tracks ?? [],
+                id: artistId+"_"+Date.now(),
+                url: query,
+                rawPlaylist: artisttracks
+            })
+
+            return this.createResponse(playlist, tracks);
         }else
 
         if (type === "search") {
