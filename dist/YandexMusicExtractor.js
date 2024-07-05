@@ -13,6 +13,7 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
       track: /(^https:)\/\/music\.yandex\.[A-Za-z]+\/album\/[0-9]+\/track\/[0-9]+/,
       playlist: /(^https:)\/\/music\.yandex\.[A-Za-z]+\/users\/[A-Za-z0-9]+\/playlists\/[0-9]+/,
       album: /(^https:)\/\/music\.yandex\.[A-Za-z]+\/album\/[0-9]+/,
+      artist: /(^https:)\/\/music\.yandex\.[A-Za-z]+\/artist\/[0-9]+/,
     };
     this.buildTrack = (track, context) =>
       new discord_player_1.Track(this.context.player, {
@@ -35,8 +36,7 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
     this.YM.init(this.options);
   }
   getThumbnail(uri, size = 400) {
-    uri.replace('%%', size + 'x' + size);
-    return 'https://' + uri;
+    return 'https://' + uri.replace('%%', size + 'x' + size);
   }
   async validate(query) {
     if (typeof query !== 'string') return false;
@@ -47,6 +47,7 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
     if (this.YaRegex.track.test(query)) type = 'track';
     else if (this.YaRegex.album.test(query)) type = 'album';
     else if (this.YaRegex.playlist.test(query)) type = 'playlist';
+    else if (this.YaRegex.artist.test(query)) type = 'artist';
     if (type === 'album') {
       const album = await this.Wrapper.getAlbumWithTracks(query);
       const albumonly = await this.Wrapper.getAlbum(query);
@@ -79,6 +80,12 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
       const thumbnail = data.ogImage
         ? this.getThumbnail(data.ogImage)
         : this.getThumbnail(data.tracks?.[0].track.coverUri);
+      const tracks = data.tracks
+        ?.filter((slot) => slot.track.available)
+        .map((slot) => {
+          const track = slot.track;
+          return this.buildTrack(track, context);
+        });
       const playlist = new discord_player_1.Playlist(this.context.player, {
         title: data.title,
         thumbnail,
@@ -89,26 +96,39 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
           name: `${data.owner.name} (${data.owner.login})`,
           url: `https://music.yandex.ru/users/${data.owner.login}`,
         },
-        tracks: [],
+        tracks: tracks ?? [],
         id: data.playlistUuid,
         url: query,
         rawPlaylist: data,
       });
-      const tracks = data.tracks
-        ?.filter((slot) => slot.track.available)
-        .map((slot) => {
-          const track = slot.track;
-          return this.buildTrack(track, context);
-        });
-      playlist.tracks = tracks ?? [];
       return this.createResponse(playlist, tracks);
     } else if (type === 'track') {
       const track = await this.Wrapper.getTrack(query);
-      const data = {
-        playlist: null,
-        tracks: [this.buildTrack(track, context)],
-      };
-      return data;
+      return this.createResponse(null, [this.buildTrack(track, context)]);
+    } else if (type === 'artist') {
+      const artist = (await this.Wrapper.getArtist(query)).artist;
+      const artistId = artist.id;
+      const artisttracks = (await this.YM.getArtistTracks(artistId)).tracks;
+      const thumbnail = artist.ogImage
+        ? this.getThumbnail(artist.ogImage)
+        : this.getThumbnail(artisttracks[0].coverUri);
+      const tracks = artisttracks.filter((track) => track.available).map((track) => this.buildTrack(track, context));
+      const playlist = new discord_player_1.Playlist(this.context.player, {
+        title: artist.name + ' songs',
+        thumbnail,
+        description: `Created: Now`,
+        type: 'playlist',
+        source: 'arbitrary',
+        author: {
+          name: artist.name,
+          url: `https://music.yandex.ru/artist/${artistId}`,
+        },
+        tracks: tracks ?? [],
+        id: artistId + '_' + Date.now(),
+        url: query,
+        rawPlaylist: artisttracks,
+      });
+      return this.createResponse(playlist, tracks);
     } else if (type === 'search') {
       const track = (await this.YM.searchTracks(query, { pageSize: 5 })).tracks.results[0];
       const data = {

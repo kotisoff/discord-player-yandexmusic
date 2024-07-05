@@ -42,8 +42,7 @@ export class YandexMusicExtractor extends BaseExtractor {
     });
 
     private getThumbnail(uri: string, size: number = 400){
-        uri.replace("%%", size+"x"+size);
-        return "https://"+uri
+        return "https://" + uri.replace("%%", size + "x" + size);
     }
 
     async validate(query: string): Promise<boolean> {
@@ -93,6 +92,11 @@ export class YandexMusicExtractor extends BaseExtractor {
 
             const thumbnail = data.ogImage ? this.getThumbnail(data.ogImage) : this.getThumbnail(data.tracks?.[0].track.coverUri as string);
 
+            const tracks = data.tracks?.filter(slot=>slot.track.available).map(slot => {
+                const track = slot.track;
+                return this.buildTrack(track, context);
+            })
+
             const playlist = new Playlist(this.context.player, {
                 title: data.title,
                 thumbnail,
@@ -103,31 +107,18 @@ export class YandexMusicExtractor extends BaseExtractor {
                     name: `${data.owner.name} (${data.owner.login})`,
                     url: `https://music.yandex.ru/users/${data.owner.login}`
                 },
-                tracks: [],
+                tracks: tracks ?? [],
                 id: data.playlistUuid,
                 url: query,
                 rawPlaylist: data
             })
-            const tracks = data.tracks?.filter(slot=>slot.track.available).map(slot => {
-                const track = slot.track;
-                return this.buildTrack(track, context);
-            })
-
-            playlist.tracks = tracks ?? [];
 
             return this.createResponse(playlist, tracks);
         }else
 
         if (type === "track") {
             const track = await this.Wrapper.getTrack(query);
-            const data = {
-                playlist: null,
-                tracks: [
-                    this.buildTrack(track, context)
-                ]
-            }
-
-            return data;
+            return this.createResponse(null, [this.buildTrack(track,context)]);
         }else
 
         if(type === "artist") {
@@ -137,7 +128,7 @@ export class YandexMusicExtractor extends BaseExtractor {
 
             const thumbnail = artist.ogImage ? this.getThumbnail(artist.ogImage) : this.getThumbnail(artisttracks[0].coverUri as string);
 
-            const tracks = artisttracks?.filter(track=>track.available).map(track =>
+            const tracks = artisttracks.filter(track=>track.available).map(track =>
                 this.buildTrack(track, context)
             )
 

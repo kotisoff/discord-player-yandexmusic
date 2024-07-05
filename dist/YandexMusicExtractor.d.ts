@@ -3,6 +3,7 @@ export interface YaRegex {
     track: RegExp;
     playlist: RegExp;
     album: RegExp;
+    artist: RegExp;
 }
 export declare class YandexMusicExtractor extends BaseExtractor {
     static identifier: "com.discord-player.yandexextractor";
