@@ -1,6 +1,6 @@
 {
   "name": "discord-player-yandexmusic",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "A custom extractor made for discord-player that enables you to extract from Yandex Music.",
   "main": "dist/YandexMusicExtractor.js",
   "author": "kotisoff",
