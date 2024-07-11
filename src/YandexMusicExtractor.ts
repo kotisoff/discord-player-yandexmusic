@@ -1,12 +1,10 @@
 import { BaseExtractor, Track, Playlist, ExtractorInfo, Util } from "discord-player";
 import { YMApi, WrappedYMApi, Types } from "ym-api-meowed";
 
-export interface YaRegex {
-    track: RegExp;
-    playlist: RegExp;
-    album: RegExp;
-    artist: RegExp
+type YaRegex = {
+    [index:string]: RegExp;
 };
+type InputTypes = "search" | "track" | "album" | "playlist" | "artist";
 
 export class YandexMusicExtractor extends BaseExtractor {
     static identifier = "com.discord-player.yandexextractor" as const; // com.discord-player.yamusicextractor
@@ -47,15 +45,17 @@ export class YandexMusicExtractor extends BaseExtractor {
 
     async validate(query: string): Promise<boolean> {
         if (typeof query !== "string") return false;
-        return this.YaRegex.track.test(query) || this.YaRegex.playlist.test(query) || this.YaRegex.album.test(query);
+        for(const regex of Object.values(this.YaRegex) as RegExp[]){
+            if(regex.test(query)) return true
+        }
+        return false;
     }
 
     async handle(query: string, context: any): Promise<ExtractorInfo> {
-        let type: "search" | "track" | "album" | "playlist" | "artist" = "search"
-        if (this.YaRegex.track.test(query)) type = "track"
-        else if (this.YaRegex.album.test(query)) type = "album"
-        else if (this.YaRegex.playlist.test(query)) type = "playlist"
-        else if (this.YaRegex.artist.test(query)) type = "artist"
+        let type: InputTypes = "search";
+        for(const [key, regex] of Object.entries(this.YaRegex) as [InputTypes, RegExp][]){
+            if(regex.test(query)) type = key;
+        }
 
         if (type === "album") {
             const album = await this.Wrapper.getAlbumWithTracks(query);
