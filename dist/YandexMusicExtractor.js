@@ -10,10 +10,10 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
     this.Wrapper = new ym_api_meowed_1.WrappedYMApi(this.YM);
     this.createBridgeQuery = (track) => `${track.title} by ${track.author}`;
     this.YaRegex = {
-      track: /(^https:)\/\/music\.yandex\.[A-Za-z]+\/album\/[0-9]+\/track\/[0-9]+/,
       playlist: /(^https:)\/\/music\.yandex\.[A-Za-z]+\/users\/[A-Za-z0-9]+\/playlists\/[0-9]+/,
       album: /(^https:)\/\/music\.yandex\.[A-Za-z]+\/album\/[0-9]+/,
       artist: /(^https:)\/\/music\.yandex\.[A-Za-z]+\/artist\/[0-9]+/,
+      track: /(^https:)\/\/music\.yandex\.[A-Za-z]+\/album\/[0-9]+\/track\/[0-9]+/,
     };
     this.buildTrack = (track, context) =>
       new discord_player_1.Track(this.context.player, {
@@ -50,33 +50,7 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
     for (const [key, regex] of Object.entries(this.YaRegex)) {
       if (regex.test(query)) type = key;
     }
-    if (type === 'album') {
-      const album = await this.Wrapper.getAlbumWithTracks(query);
-      const albumonly = await this.Wrapper.getAlbum(query);
-      const playlist = new discord_player_1.Playlist(this.context.player, {
-        title: albumonly.title,
-        thumbnail: albumonly.coverUri,
-        description: `Genre: ${albumonly.genre}, Release year: ${albumonly.year}`,
-        type: 'playlist',
-        source: 'arbitrary',
-        author: {
-          name: albumonly.artists.map((a) => a.name).join(', '),
-          url: `https://music.yandex.ru/artist/${albumonly.artists[0].id}`,
-        },
-        tracks: [],
-        id: albumonly.id + '',
-        url: query,
-        rawPlaylist: albumonly,
-      });
-      const alltracks = album.volumes.flatMap((page) => page);
-      const tracks = alltracks
-        .filter((track) => track.available)
-        .map((track) => {
-          return this.buildTrack(track, context);
-        });
-      playlist.tracks = tracks;
-      return this.createResponse(playlist, tracks);
-    } else if (type === 'playlist') {
+    if (type === 'playlist') {
       const data = await this.Wrapper.getPlaylist(query);
       if (!data.available) return { playlist: null, tracks: [] };
       const thumbnail = data.ogImage
@@ -104,9 +78,32 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
         rawPlaylist: data,
       });
       return this.createResponse(playlist, tracks);
-    } else if (type === 'track') {
-      const track = await this.Wrapper.getTrack(query);
-      return this.createResponse(null, [this.buildTrack(track, context)]);
+    } else if (type === 'album') {
+      const album = await this.Wrapper.getAlbumWithTracks(query);
+      const albumonly = await this.Wrapper.getAlbum(query);
+      const playlist = new discord_player_1.Playlist(this.context.player, {
+        title: albumonly.title,
+        thumbnail: this.getThumbnail(albumonly.coverUri),
+        description: `Genre: ${albumonly.genre}, Release year: ${albumonly.year}`,
+        type: 'playlist',
+        source: 'arbitrary',
+        author: {
+          name: albumonly.artists.map((a) => a.name).join(', '),
+          url: `https://music.yandex.ru/artist/${albumonly.artists[0].id}`,
+        },
+        tracks: [],
+        id: albumonly.id + '',
+        url: query,
+        rawPlaylist: albumonly,
+      });
+      const alltracks = album.volumes.flatMap((page) => page);
+      const tracks = alltracks
+        .filter((track) => track.available)
+        .map((track) => {
+          return this.buildTrack(track, context);
+        });
+      playlist.tracks = tracks;
+      return this.createResponse(playlist, tracks);
     } else if (type === 'artist') {
       const artist = (await this.Wrapper.getArtist(query)).artist;
       const artistId = artist.id;
@@ -131,6 +128,9 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
         rawPlaylist: artisttracks,
       });
       return this.createResponse(playlist, tracks);
+    } else if (type === 'track') {
+      const track = await this.Wrapper.getTrack(query);
+      return this.createResponse(null, [this.buildTrack(track, context)]);
     } else if (type === 'search') {
       const track = (await this.YM.searchTracks(query, { pageSize: 5 })).tracks.results[0];
       const data = {
