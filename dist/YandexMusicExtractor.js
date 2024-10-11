@@ -10,25 +10,23 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
     this.Wrapper = new ym_api_meowed_1.WrappedYMApi(this.YM);
     this.createBridgeQuery = (track) => `${track.title} by ${track.author}`;
     this.YaRegex = {
-      playlist: /(^https:)\/\/music\.yandex\.[A-Za-z]+\/users\/[A-Za-z0-9]+\/playlists\/[0-9]+/,
+      playlist: /(^https:)\/\/music\.yandex\.[A-Za-z]+\/users\/[A-Za-z0-9._=-]+\/playlists\/[0-9]+/,
       album: /(^https:)\/\/music\.yandex\.[A-Za-z]+\/album\/[0-9]+/,
       artist: /(^https:)\/\/music\.yandex\.[A-Za-z]+\/artist\/[0-9]+/,
-      track: /(^https:)\/\/music\.yandex\.[A-Za-z]+\/album\/[0-9]+\/track\/[0-9]+/,
+      track: /(^https:)\/\/music\.yandex\.[A-Za-z]+\/album\/[0-9]+\/track\/[0-9]+/
     };
     this.buildTrack = (track, context) =>
       new discord_player_1.Track(this.context.player, {
         title: track.title,
         raw: track,
-        description: `Genre: ${track.albums[0].genre}, Release year: ${track.albums[0].year}, Explicit: ${
-          track.contentWarning?.includes('explicit') ? 'Yes' : 'No'
-        }`,
+        description: `Genre: ${track.albums[0].genre}, Release year: ${track.albums[0].year}, Explicit: ${track.contentWarning?.includes('explicit') ? 'Yes' : 'No'}`,
         author: track.artists.map((artist) => artist.name).join(', '),
         url: `https://music.yandex.ru/album/${track.albums[0].id}/track/${track.id}`,
         source: 'arbitrary',
         thumbnail: this.getThumbnail(track.coverUri),
         duration: discord_player_1.Util.buildTimeCode(discord_player_1.Util.parseMS(track.durationMs)),
         views: 0,
-        requestedBy: context?.requestedBy ?? null,
+        requestedBy: context?.requestedBy ?? null
       });
   }
   async activate() {
@@ -70,12 +68,12 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
         source: 'arbitrary',
         author: {
           name: `${data.owner.name} (${data.owner.login})`,
-          url: `https://music.yandex.ru/users/${data.owner.login}`,
+          url: `https://music.yandex.ru/users/${data.owner.login}`
         },
         tracks: tracks ?? [],
         id: data.playlistUuid,
         url: query,
-        rawPlaylist: data,
+        rawPlaylist: data
       });
       return this.createResponse(playlist, tracks);
     } else if (type === 'album') {
@@ -89,12 +87,12 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
         source: 'arbitrary',
         author: {
           name: albumonly.artists.map((a) => a.name).join(', '),
-          url: `https://music.yandex.ru/artist/${albumonly.artists[0].id}`,
+          url: `https://music.yandex.ru/artist/${albumonly.artists[0].id}`
         },
         tracks: [],
         id: albumonly.id + '',
         url: query,
-        rawPlaylist: albumonly,
+        rawPlaylist: albumonly
       });
       const alltracks = album.volumes.flatMap((page) => page);
       const tracks = alltracks
@@ -120,12 +118,12 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
         source: 'arbitrary',
         author: {
           name: artist.name,
-          url: `https://music.yandex.ru/artist/${artistId}`,
+          url: `https://music.yandex.ru/artist/${artistId}`
         },
         tracks: tracks ?? [],
         id: artistId + '_' + Date.now(),
         url: query,
-        rawPlaylist: artisttracks,
+        rawPlaylist: artisttracks
       });
       return this.createResponse(playlist, tracks);
     } else if (type === 'track') {
@@ -135,7 +133,7 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
       const track = (await this.YM.searchTracks(query, { pageSize: 5 })).tracks.results[0];
       const data = {
         playlist: null,
-        tracks: [this.buildTrack(track, context)],
+        tracks: [this.buildTrack(track, context)]
       };
       return data;
     }
@@ -150,11 +148,11 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
   }
   async getRelatedTracks(track) {
     const trackid = parseInt(track.url.split('/track/')[1], 10);
-    const simmilar = await this.YM.getSimmilarTracks(trackid);
-    let simmilarTracks = simmilar.simmilarTracks.slice(0, 4);
-    if (simmilar.simmilarTracks.length === 0) {
+    const simmilar = await this.YM.getSimilarTracks(trackid);
+    let simmilarTracks = simmilar.similarTracks.slice(0, 4);
+    if (simmilar.similarTracks.length === 0) {
       simmilarTracks = (await this.YM.getStationTracks(`genre:${simmilar.track.albums[0].genre}`)).sequence.map(
-        (sttrack) => sttrack.track,
+        (sttrack) => sttrack.track
       );
     }
     const playlist = new discord_player_1.Playlist(this.context.player, {
@@ -165,12 +163,12 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
       source: 'arbitrary',
       author: {
         name: 'YMExtractor',
-        url: `https://npm.im/discord-player-yandexmusic`,
+        url: `https://npm.im/discord-player-yandexmusic`
       },
       tracks: [],
       id: `related${trackid}`,
       url: `https://npm.im/discord-player-yandexmusic`,
-      rawPlaylist: null,
+      rawPlaylist: null
     });
     const tracks = simmilarTracks.map((song) => this.buildTrack(song, null));
     playlist.tracks = tracks;
@@ -178,7 +176,7 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
   }
   async getRadioTracks(stationId, queueId) {
     const tracks = (await this.YM.getStationTracks(stationId, queueId)).sequence.map((st) =>
-      this.buildTrack(st.track, null),
+      this.buildTrack(st.track, null)
     );
     const playlist = new discord_player_1.Playlist(this.context.player, {
       title: `Radio tracks`,
@@ -188,12 +186,12 @@ class YandexMusicExtractor extends discord_player_1.BaseExtractor {
       source: 'arbitrary',
       author: {
         name: 'YMExtractor',
-        url: `https://npm.im/discord-player-yandexmusic`,
+        url: `https://npm.im/discord-player-yandexmusic`
       },
       tracks,
       id: `radio${Date.now()}`,
       url: `https://npm.im/discord-player-yandexmusic`,
-      rawPlaylist: null,
+      rawPlaylist: null
     });
     return this.createResponse(playlist, tracks);
   }
