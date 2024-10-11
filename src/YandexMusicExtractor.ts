@@ -20,7 +20,7 @@ export class YandexMusicExtractor extends BaseExtractor {
     }
 
     private YaRegex: YaRegex = {
-        playlist: /(^https:)\/\/music\.yandex\.[A-Za-z]+\/users\/[A-Za-z0-9]+\/playlists\/[0-9]+/,
+        playlist: /(^https:)\/\/music\.yandex\.[A-Za-z]+\/users\/[A-Za-z0-9._=-]+\/playlists\/[0-9]+/,
         album: /(^https:)\/\/music\.yandex\.[A-Za-z]+\/album\/[0-9]+/,
         artist: /(^https:)\/\/music\.yandex\.[A-Za-z]+\/artist\/[0-9]+/,
         track: /(^https:)\/\/music\.yandex\.[A-Za-z]+\/album\/[0-9]+\/track\/[0-9]+/
