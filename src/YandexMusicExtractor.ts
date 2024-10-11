@@ -175,9 +175,9 @@ export class YandexMusicExtractor extends BaseExtractor {
 
     async getRelatedTracks(track: Track): Promise<ExtractorInfo> {
         const trackid = parseInt(track.url.split("/track/")[1],10);
-        const simmilar = await this.YM.getSimmilarTracks(trackid);
-        let simmilarTracks = simmilar.simmilarTracks.slice(0,4);
-        if(simmilar.simmilarTracks.length===0) {
+        const simmilar = await this.YM.getSimilarTracks(trackid);
+        let simmilarTracks = simmilar.similarTracks.slice(0,4);
+        if(simmilar.similarTracks.length===0) {
             simmilarTracks = (await this.YM.getStationTracks(`genre:${simmilar.track.albums[0].genre}`)).sequence.map(sttrack=>sttrack.track)
         }
         const playlist = new Playlist(this.context.player, {
