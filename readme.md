@@ -18,4 +18,5 @@ discordplayer.useMainPlayer().register(YandexMusicExtractor, { access_token: "yo
 2. To get uid click [here](https://mail.yandex.ru/). Your uid will be in url.
 
 ## Thanks
+
 - retro_ig (aka retrouser955) for his [discord-player-deezer](https://github.com/retrouser955/discord-player-deezer)
